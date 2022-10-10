@@ -8,13 +8,26 @@
 
 pragma solidity ^0.8.7;
 
+//for Chainlink VRF
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol"; //yarn add --dev @chainlink/contracts
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
+//for Chainlink Keepers (which is now named Chainlink Automation)
+import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+
 error Raffle__NotEnoughETHEntered();
 error Raffle__TransferFailed();
+error Raffle__NotOpen();
 
-contract Raffle is VRFConsumerBaseV2 {
+contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
+    /* Type declarations */
+    // types should be first thing in our smart contract, acording to the best practises. Enum is a type
+    // when we are creating an enum we are secretely creating a uint256 where 0 = OPEN, 1 = CALCULATING. But like this is much more explicit.
+    enum RaffleState {
+        OPEN,
+        CALCULATING
+    }
+
     /* State Variables */
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
@@ -26,8 +39,10 @@ contract Raffle is VRFConsumerBaseV2 {
     uint32 private constant NUM_WORDS = 1;
 
     // Lottery Variables
-
     address private s_recentWinner;
+    RaffleState private s_raffleState;
+    uint256 private s_lastTimeStamp;
+    uint256 private immutable i_interval; //always think, will I change this variable in the future or not?
 
     /* Events */
     //A good syntax to name events is to use the function name but reversed
@@ -40,7 +55,8 @@ contract Raffle is VRFConsumerBaseV2 {
         uint256 entranceFee,
         bytes32 gasLane,
         uint64 subscriptionId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint256 interval
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         //above is how we call the constructor of a contract we inherited.
         //we took the address that will generate the random number as a parameter and inputed it in the 2nd constructor of the contract we inherited.
@@ -49,6 +65,9 @@ contract Raffle is VRFConsumerBaseV2 {
         i_gasLane = gasLane;
         i_subscriptionId = subscriptionId;
         i_callbackGasLimit = callbackGasLimit;
+        s_raffleState = RaffleState.OPEN;
+        s_lastTimeStamp = block.timestamp;
+        i_interval = interval;
     }
 
     function enterRaffle() public payable {
@@ -56,6 +75,10 @@ contract Raffle is VRFConsumerBaseV2 {
         if (msg.value < i_entranceFee) {
             revert Raffle__NotEnoughETHEntered();
         }
+        if (s_raffleState != RaffleState.OPEN) {
+            revert Raffle__NotOpen();
+        }
+
         s_players.push(payable(msg.sender));
 
         // Events:
@@ -72,13 +95,54 @@ contract Raffle is VRFConsumerBaseV2 {
         // This non-indexed parameters cost less gas to pump into the Logs. They are in the 'data' section inside the 'Logs' section of etherscan.
         // In cases where we have our contract verified in etherscan, etherscan knows what the abi is, and we can see them clicking in the 'dec(oded mode)'.
         // The indexed parameters/topics are unencrypted and open to see, but cost more gas and you can only have 3 of them.
+        // For example in a lottery when there's a winner every 1 min, we can emit the address of the winner every time someone wins the lottery, but it's probably not worth
+        // to have an array on storage recording every address that wins and constantly updating it every 1 min because that would cost a lot of gas, so makes sense to make
+        // an emit with the address as an indexed variable (easily queriable) so that with protocols like the graph we can query that info if we need it, since its info
+        // that we don't need for the smart contract to work on its own, but good to record/have.
+        // Remember all of this, all super important
 
         emit RaffleEnter(msg.sender);
+    }
+
+    /**
+     * @dev This is the function that then Chainlink keeper nodes call.
+     * they look for the `upkeepNeeded` to be true.
+     * The following should be true in order to return true:
+     * 1. Our time interval should have passed
+     * 2. The lottery should have at least 1 player, and have some ETH
+     * 3. Our subscription is funded with LINK.
+     * 4. The lottery should be in an "open" state (While we are waiting for our random numbers to come, we are in this wierd limbo state where we are waiting for it, but
+     * we shouldnt allow any new player to join. What we want to do is create some state variable (enum) telling us whether the lottery is open or not)
+     */
+
+    function checkUpkeep(
+        bytes calldata /*checkData*/
+    )
+        external
+        view
+        override
+        returns (
+            bool upkeepNeeded,
+            bytes memory /*performData*/
+        )
+    {
+        //this bytes calldata allows us to specify really anything that we want when we call this checkUpkeep function. Having this checkdata be of type bytes means that we
+        // can even specify this to call other functions. There's a lot of advanced things we can do by just having an imput parameter of type bytes.
+        //For us we're gonna keep this simple and not gonna use this checkdata piece (so we /**/ commented it out). This is more advanced stuff.
+
+        bool isOpen = (RaffleState.OPEN == s_raffleState);
+        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        bool hasPlayers = (s_players.length > 0);
+        bool hasBalance = address(this).balance > 0;
+
+        upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
     function requestRandomWinner() external {
         //external to save some gas, makes sense bcuz this is only called by the chainlink keepers
         //function that will make the request
+
+        s_raffleState = RaffleState.CALCULATING;
 
         uint256 requestId = i_vrfCoordinator.requestRandomWords( //this requestRandomWords() returns an uint256 requestId, an unique id that defines who's requesting this and all this info
             i_gasLane, //keyHash. Maximum gas price we're willing to pay for a request in wei, like a ceiling to prevent paying a lot on a possible spike up in gas. In the bottom of the file I have the link to pick the hash we want.
@@ -116,6 +180,8 @@ contract Raffle is VRFConsumerBaseV2 {
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];
         s_recentWinner = recentWinner;
+        s_raffleState = RaffleState.OPEN;
+        s_players = new address payable[](0);
 
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
@@ -141,13 +207,22 @@ contract Raffle is VRFConsumerBaseV2 {
 //Chainlink VRF:
 //We are following this example -> https://docs.chain.link/docs/vrf/v2/subscription/examples/get-a-random-number/
 //Watch this video: https://www.youtube.com/watch?v=rdJ5d8j1RCg
+
 //      -keyHash: https://docs.chain.link/docs/vrf/v2/subscription/supported-networks/#configurations
+//
+//For the Chainlink VRF we need to inherit the VRFConsumerBaseV2 and have a fulfillRandomWords() function overridden from it to be called. Also we need to call
+// i_vrfCoordinator.requestRandomWords to request those numbers (which will be inside performUpkeep in this case).
 
 //Chainlink Keepers:
+//We are following this example -> https://docs.chain.link/docs/chainlink-automation/compatible-contracts/
 //Watch this video: https://www.youtube.com/watch?v=-Wkw5JVQGUo
 // There's 2 parts to building a Chainlink keeper upkept:
 //         1) Write a smart contract that is compatible by implementing two methods (checkUpkeep and performUpkeep)
 //         2) Register that smart contract for upkeep with the Chainlink keeper network
+//We're probably not gonna use the "checkData" that is in this video but I think I've understood the purpose, it's when you have more than one keeper for the same contract,
+//and you wanna send some different data with each different call so you can know which keeper is calling. I'm pretty sure it's that but I might be wrong :P
+
+//For Chainlink Keepers we need to inherit AutomationCompatibleInterface() and have either an checkUpkeep() and a performUpkeep() overriden from it.
 
 //Would be nice to create our own accounts for managing the chainlink balance for the VRF and Keeper
 
@@ -156,3 +231,5 @@ contract Raffle is VRFConsumerBaseV2 {
 // and often times when he's writing smart contracts he's often flipping between the deploy scripts, the contracts and the tests to make sure everything is doing exactly
 // what he wants them to do. For the purpose of this course, and to make it easier for us to follow, we're gonna keep writing our smart contract almost until its complete,
 // and then move to the deploy scripts and the tests. But in the future when we're making them its good to deploy and test as we're writing the contracts.
+
+//14:47:16
