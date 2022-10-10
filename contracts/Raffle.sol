@@ -18,6 +18,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 error Raffle__NotEnoughETHEntered();
 error Raffle__TransferFailed();
 error Raffle__NotOpen();
+error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
 
 contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /* Type declarations */
@@ -118,7 +119,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     function checkUpkeep(
         bytes calldata /*checkData*/
     )
-        external
+        public
         view
         override
         returns (
@@ -129,6 +130,8 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         //this bytes calldata allows us to specify really anything that we want when we call this checkUpkeep function. Having this checkdata be of type bytes means that we
         // can even specify this to call other functions. There's a lot of advanced things we can do by just having an imput parameter of type bytes.
         //For us we're gonna keep this simple and not gonna use this checkdata piece (so we /**/ commented it out). This is more advanced stuff.
+        //We made this public since we're calling this function from our performUpkeep() to make sure upkeepNeeded = true, and its not just somebody calling performUpkeep().
+        // otherwise it would be external.
 
         bool isOpen = (RaffleState.OPEN == s_raffleState);
         bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
@@ -138,9 +141,22 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
-    function requestRandomWinner() external {
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
         //external to save some gas, makes sense bcuz this is only called by the chainlink keepers
-        //function that will make the request
+        //function that will be called by the chainlink keeper and will make the vrf request
+
+        //since anyone can call this function, we wanna make sure this is only called when upkeepNeeded from checkUpkeep() is true. If it is, and someone is calling this,
+        //they are making us a favor:
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert Raffle__UpkeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            ); //we're passing some variables so that who ever is getting this error knows why they are getting this error (some of the conditions of upkeepNeeded not true)
+        }
 
         s_raffleState = RaffleState.CALCULATING;
 
@@ -182,6 +198,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         s_recentWinner = recentWinner;
         s_raffleState = RaffleState.OPEN;
         s_players = new address payable[](0);
+        s_lastTimeStamp = block.timestamp;
 
         (bool success, ) = recentWinner.call{value: address(this).balance}("");
         if (!success) {
@@ -232,4 +249,4 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 // what he wants them to do. For the purpose of this course, and to make it easier for us to follow, we're gonna keep writing our smart contract almost until its complete,
 // and then move to the deploy scripts and the tests. But in the future when we're making them its good to deploy and test as we're writing the contracts.
 
-//14:47:16
+//14:50:37
