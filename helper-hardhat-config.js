@@ -5,4 +5,10 @@ const networkConfig = {
     },
 }
 
+const developmentChains = ["hardhat", "localhost"]
+
+module.exports = {
+    networkConfig,
+    developmentChains,
+}
 // * veio de: https://docs.chain.link/docs/vrf/v2/direct-funding/supported-networks/
