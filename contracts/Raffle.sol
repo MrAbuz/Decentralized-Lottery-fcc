@@ -20,6 +20,13 @@ error Raffle__TransferFailed();
 error Raffle__NotOpen();
 error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
 
+/** This is called netspec (To give people who are reading our contract even more information)
+ * @title A sample Raffle Contract
+ * @author Mr Abuz
+ * @notice This contract is for creating an untamperable decentralized smart contract
+ * @dev This implements Chainlink VRF v2 and Chainlink Keepers
+ */
+
 contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /* Type declarations */
     // types should be first thing in our smart contract, acording to the best practises. Enum is a type
@@ -51,6 +58,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     event RequestedRaffleWinner(uint256 indexed requestId); //for now we're not following the naming convention bcuz we'll be changing the name of the functions later. Prob when I see this its already following the naming convention
     event WinnerPicked(address indexed winner); //we don't have a way to keep track of the list of previous winners, so we're just gonna emit an event so that there's always gonna be that easily queriably history of event winners (and this is the use of thegraph as I think of)
 
+    /* Functions */
     constructor(
         address vrfCoordinatorV2,
         uint256 entranceFee,
@@ -71,6 +79,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         i_interval = interval;
     }
 
+    //we could add some netspec before each of this functions
     function enterRaffle() public payable {
         // to remember the advantage of this vs require: instead of storing a string, it stores an error code in our smart contract which is a lot more gas efficient
         if (msg.value < i_entranceFee) {
@@ -117,10 +126,9 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
      */
 
     function checkUpkeep(
-        bytes calldata /*checkData*/
+        bytes memory /*checkData*/
     )
         public
-        view
         override
         returns (
             bool upkeepNeeded,
@@ -162,7 +170,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
         uint256 requestId = i_vrfCoordinator.requestRandomWords( //this requestRandomWords() returns an uint256 requestId, an unique id that defines who's requesting this and all this info
             i_gasLane, //keyHash. Maximum gas price we're willing to pay for a request in wei, like a ceiling to prevent paying a lot on a possible spike up in gas. In the bottom of the file I have the link to pick the hash we want.
-            i_subscriptionId, //The subscription ID that this contract uses for funding requests.
+            i_subscriptionId, //The subscription ID that this contract uses for funding requests. From an acc we create for it, or from one we use.
             REQUEST_CONFIRMATIONS, //How many confirmations the Chainlink node should wait before responding. We're not gonna worry too much about this and we'll make it a constant variable.
             i_callbackGasLimit, //max gas used for them to call our fulfillRandomWords(), which means how much gas does our fulfillRandomWords cost to call, depending on how complex we make it. We'll just know when we code our fulfillRandomWords function and know its gas so we'll set it in the constructor.
             NUM_WORDS //how many random numbers that we want to get. we'll hard code it as a constant
@@ -219,6 +227,27 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getRecentWinner() public view returns (address) {
         return s_recentWinner;
+    }
+
+    function getRaffleState() public view returns (RaffleState) {
+        return s_raffleState;
+    }
+
+    function getNumWords() public pure returns (uint256) {
+        //since NUM_WORDS is stored in the bytecode (its a constant variable), technically this isn't reading from storage, and therefore this can be a pure function.
+        return NUM_WORDS;
+    }
+
+    function getNumberOfPlayers() public view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLatestTimestamp() public view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+
+    function getRequestConfirmations() public pure returns (uint256) {
+        return REQUEST_CONFIRMATIONS;
     }
 }
 //Chainlink VRF:
