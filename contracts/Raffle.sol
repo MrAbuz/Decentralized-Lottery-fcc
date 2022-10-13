@@ -195,7 +195,10 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     //call the function of i_vrfCoordinator contract in our requestRandomWinner(), it calls back another function in our inherited contract (rawFullFillRandomWords()),
     //not this one directly, that has a require to make sure its sent from address vrfCoordinatorV2, and if it is, it internally calls this function. So someone had to call
     //rawFullFillRandomWords()) to get around the system bcuz its the external one, but it had a require for coordinator address that we inputed in our constructor, so they
-    //wouldnt be able to. Since it then calls internaly this function, its okay for this to be internal, which is also good to make it even impossible for someone to hack the VRF.
+    //wouldnt be able to. Since only the coordinator address could call it, that rawfullfill automatically internally calls this function (that doesnt have a require but
+    //had to be called from some internal function) which could only be that one which had been verified through the require. And since this is internal no1 more can call)
+    //so basically its a safe way to make sure this has to be called from the coordinator address by automatically "adding a require coordinator to this function" without me
+    //having to type it, nice way.
 
     //we're gonna pick a random winner using something calling the modulo function: (the same thing i've learned before of the remainder, the modulo operation yields the
     //remainder r after the division of the operand a by the operand n): 5 % 2 = 1 (1 is the remainder); 202 % 10 = 2 (and we always get a number in this case between
