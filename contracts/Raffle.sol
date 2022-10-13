@@ -30,7 +30,7 @@ error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint25
 contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /* Type declarations */
     // types should be first thing in our smart contract, acording to the best practises. Enum is a type
-    // when we are creating an enum we are secretely creating a uint256 where 0 = OPEN, 1 = CALCULATING. But like this is much more explicit.
+    // when we are creating an enum we are secretely creating a uint256 where 0 = OPEN, 1 = CALCULATING (good to know for tests). But like this is much more explicit.
     enum RaffleState {
         OPEN,
         CALCULATING
@@ -216,6 +216,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     /* View / Pure Functions */
+    // this gets were also good to make tests
     function getEntranceFee() public view returns (uint256) {
         //this nice logic to make i_entranceFee private and then create a get function if users need to get the value
         return i_entranceFee;
@@ -248,6 +249,10 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getRequestConfirmations() public pure returns (uint256) {
         return REQUEST_CONFIRMATIONS;
+    }
+
+    function getInterval() public view returns (uint256) {
+        return i_interval;
     }
 }
 //Chainlink VRF:
