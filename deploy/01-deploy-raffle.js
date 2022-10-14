@@ -14,7 +14,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
         const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
         vrfCoordinatorV2Address = vrfCoordinatorV2Mock.address
 
-        //creating a chainlink subscription programatically, funding it, and adding it as a consumer (this last one in the end of the code)
+        //1.creating a chainlink subscription programatically, 2.getting subscriptionid 3.funding it, and 4.adding it as a consumer (this last one in the end of the code)
         //(we'll make this from the website ui but he made it here programaticaly so we learn how to do it)
         const transactionResponse = await vrfCoordinatorV2Mock.createSubscription() //to create a chainlink subscription programatically
         const transactionReceipt = await transactionResponse.wait(1)
@@ -56,7 +56,8 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     })
     log("Main Contract Deployed!")
 
-    //as i've explained above, we need to also add our contract as a consumer (after deploying it), while seting up everything for chainlink vrf.
+    //as i've explained above, we need to also add our contract as a consumer (after deploying it), while seting up everything programatically for chainlink vrf.
+    //makes sense to be after the contract is deployed because to add as a consumer we need to add the contract address that we'll be requesting with.
     if (chainId == 31337) {
         const vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock") //adding this here aswell because we needed it as a global variable
         await vrfCoordinatorV2Mock.addConsumer(subscriptionId.toNumber(), raffle.address) //added as a consumer
