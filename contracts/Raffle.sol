@@ -175,7 +175,10 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             i_callbackGasLimit, //max gas used for them to call our fulfillRandomWords(), which means how much gas does our fulfillRandomWords cost to call, depending on how complex we make it. We'll just know when we code our fulfillRandomWords function and know its gas so we'll set it in the constructor.
             NUM_WORDS //how many random numbers that we want to get. we'll hard code it as a constant
         );
-        emit RequestedRaffleWinner(requestId);
+        emit RequestedRaffleWinner(requestId); //this emited event is actually redundant because if we look at i_vrfCoordinator.requestRandomWords() we'd see that it
+        //also emits an event that also returns the requestId, so its actually redundant for us to emit this one. We can just use the emited requestId from vrf coordinator.
+        //for the purpose of this course and showing what an event looks like we're gonna leave this here, but if we wanted to refactor this we'd definitely want to remove
+        //this emit.
     }
 
     function fulfillRandomWords(

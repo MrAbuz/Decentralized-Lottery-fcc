@@ -1,5 +1,9 @@
 //We're gonna be a bit verbose here in this unit tests. We're gonna make our coverage really really good here. Not perfect, but pretty verbose.
-//Keep making hh test --grep "..." as we do each test so we know we're doing them well
+//Keep making hh test --grep (or yarn hardhat test --grep "...") "..." as we do each test so we know we're doing them well
+//I'm starting to understand how we can do really good tests by always being super explicit in each tests that each condition is asserted and that the other fails
+//so we take x conclusion. From what I can understand now we're being pretty verbose here, but we could be a lot more explicit but would take way more lines, but would
+//be easy. I can also be wrong, but i'm pretty sure. A lot of times we're assuming x to be true cuz its logic it should be true, but we could be asserting it to be true
+//so that every conditional is explicitely true in the test. One example. As I do more and more I bet i'll understand really well how to do this tests perfectly.
 
 const { assert, expect } = require("chai")
 const { getNamedAccounts, deployments, ethers, network } = require("hardhat")
@@ -7,7 +11,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("Raffle Unit Tests", async function () {
+    : describe("Raffle Unit Tests", function () {
           //we keep adding the variables that we need as we do each it() in here, and call them in the beforeEach() below.
           //initially we just called both contracts and the deployer, and then kept adding and initializing as we gone through the tests
           let raffle, vrfCoordinatorV2Mock, raffleEntranceFee, deployer, interval
@@ -22,7 +26,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
               interval = await raffle.getInterval()
           })
 
-          describe("constructor", async function () {
+          describe("constructor", function () {
               it("initializes the raffle correctly", async function () {
                   //ideally we make our tests have just 1 assert per "it", but sometimes we're gonna have a bunch because we're being a bit loose here
                   const raffleState = await raffle.getRaffleState()
@@ -33,7 +37,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
               //we could've written more tests for the rest of the variables on the constructor, "but let's just move on"
           })
 
-          describe("enterRaffle", async function () {
+          describe("enterRaffle", function () {
               it("reverts when you don't pay enough", async function () {
                   await expect(raffle.enterRaffle()).to.be.revertedWith(
                       "Raffle__NotEnoughETHEntered"
@@ -79,10 +83,11 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   )
               })
           })
-          describe("checkUpkeep", async function () {
+          describe("checkUpkeep", function () {
               it("returns false if people haven't sent any ETH", async function () {
-                  //so we'll make everything be true in the 4 requires in checkUpkeep, expect that nobody has entered yet.
-                  //the enum state is already OPEN, so we'll make sure time > 30s
+                  //so we'll make everything be true in the 2 requires in checkUpkeep, except having no players in the array and having no eth in the contract
+                  //what's true is: the enum state is already OPEN, so we'll make sure time > 30s.
+                  //this basicaly tests both the requires of no players in array and no eth in the contract at the same time
                   // [] is the way to send a blanket bytes object as a parameter in a function, when you don't want to send nothing and its bytes. Other way is "0x"
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1]) //to increase the time by 31s to make one require be true
                   await network.provider.send("evm_mine", []) //to pass 1 block so that the time gets updated, if no times pass the state remains the same
@@ -102,10 +107,77 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.send("evm_mine", [])
                   await raffle.performUpkeep([])
-                  const raffleState = await raffle.getRaffleState()
+                  const raffleState = await raffle.getRaffleState() //this makes the enum state turn into CALCULATING
                   const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
-                  assert.equal(raffleState.toString(), "1")
+                  assert.equal(raffleState.toString(), "1") //because the options on the enums are in reality 0,1,2..first chosen is 0, then 1, then 2. OPEN=0; CALCULATING=1.
                   assert.equal(upkeepNeeded, false) //same as assert (!upkeepNeeded) as we did above
+              })
+
+              it("returns false if enough time hasn't passed", async function () {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() - 5]) //here we take time from the 30s to make sure its <30s
+                  await network.provider.send("evm_mine", [])
+                  const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
+                  assert.equal(upkeepNeeded, false)
+              })
+
+              it("returns true if enough time has passed, has players, has eth and is open", async function () {
+                  //basically every require is true, so upkeepNeeded needs to be true
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.send("evm_mine", [])
+                  const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
+                  assert.equal(upkeepNeeded, true)
+              })
+          })
+          describe("performUpkeep", function () {
+              //funny that he's testing either that it runs if checkUpkeep is true, but also that it fails if checkUpkeep is false
+              it("can only run if checkUpkeep is true", async function () {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.send("evm_mine", [])
+                  const tx = await raffle.performUpkeep([])
+                  assert(tx) //if tx doesnt work/performUpkeep() errors out, this will fail.
+                  //This looks like the oposite of expect to be reverted, but we expect it to work. Nice.
+              })
+
+              it("reverts when checkUpkeep is false", async function () {
+                  //this is one of the examples that patrick didnt add this next two lines but I added them, bcuz by doing so Im being be super specific that upkeepNeeded
+                  //is false, even tho its logical that it is, but im proving. I guess this is what he means its missing for the tests to be perfect.
+                  const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
+                  assert.equal(upkeepNeeded, false)
+                  expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded") //this error in my solidity returns some variables. We could be super
+                  //specific and add the values of the variables that we expect it to revert with, using string interpolation. But we'll do it in a simple way like this.
+              })
+
+              it("updates the raffle state, emits an event, and calls the vrf coordinator", async function () {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.send("evm_mine", [])
+                  const txResponse = await raffle.performUpkeep([])
+                  const txReceipt = await txResponse.wait(1)
+                  const raffleState = await raffle.getRaffleState
+
+                  const requestId = txReceipt.events[1].args.requestId
+                  //IMPORTANT: This is how you access the arguments of an event emited through a transaction
+                  //remember that we did exactly the same in 01-deploy-raffle.js when we got the requestId from the emit of createSubscription()
+                  //[1] is the number of events emited by order to know which event it is, this was the second, thats why its index 1.
+                  //This is not the index of the argument of the event that we want, its which event it is.
+                  //while calling performUpkeep(), we call requestRandomWords() from vrfCoordinator that emits an event first, so we're reaching for the 2nd event, index 1.
+                  //We're reaching for the actual event that we emit in performUpkeep().
+                  //Then we use .args.requestId to specify that we want the argument from the emit that is called "requestId".
+
+                  //Since when we call requestRandomWords() it returns requestId that we emit in our event (check sol file), we're doing like this:
+                  //But since requestRandomWords() also emits an event itself, I guess we could also just look at events[0].args.requestId (which is index 0 because
+                  //requestRandomWords()'s emit is called first when performUpkeep() is called as I explained above, and the argument is also called "requestId" in
+                  //the event of requestRandomWords()), we get the requestId, and prove that it is > 0. But, as we explained in the solidity file, we redundantely created
+                  //our event in our contract that emits requestId just like requestRandomWords()'s event do, so here we're using our emit to prove, but we could also just
+                  //use their to prove with events[0].args.requestId. Our was redundantly created.
+                  //At the same time we proved that we emited an event
+                  //This is how we prove that a function was called? bcuz our function called a function of other contract and that function of other contract emited an event?
+
+                  assert(requestId.toNumber() > 0) //he said here or "toString or..." so maybe its the same? toNumber() or toString()?
+                  assert(raffleState == 1)
               })
           })
       })
