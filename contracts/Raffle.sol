@@ -191,21 +191,21 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     //It is inherited then overriden because the vrfcoordinator needs to make sure he can call this exact function.
     // /*requestId*/ we doing it like this because we needed to have requestId there because its an overriden function and it must be called exactly like that and have those
     // 2 arguments, but we're not using the variable, so we just maintain the argument spot with uint256 but we dont identify it(otherwise its an unused variable)
+
     //is this internal (and the contract inherited) so that no1 can call this function i.e. cheat the system? if it was external/public they could, so only way for no1
     //to be able to call is either to be internal with inherit or external with a require for a certain address. Just speculating, lets see.
-
-    //This function is internal to either be protecting against someone externally calling this function with a pre-determined random number. But also because when we
+    //Answer: This function is internal to either be protecting against someone externally calling this function with a pre-determined random number. But also because when we
     //call the function of i_vrfCoordinator contract in our requestRandomWinner(), it calls back another function in our inherited contract (rawFullFillRandomWords()),
     //not this one directly, that has a require to make sure its sent from address vrfCoordinatorV2, and if it is, it internally calls this function. So someone had to call
     //rawFullFillRandomWords()) to get around the system bcuz its the external one, but it had a require for coordinator address that we inputed in our constructor, so they
     //wouldnt be able to. Since only the coordinator address could call it, that rawfullfill automatically internally calls this function (that doesnt have a require but
-    //had to be called from some internal function) which could only be that one which had been verified through the require. And since this is internal no1 more can call)
-    //so basically its a safe way to make sure this has to be called from the coordinator address by automatically "adding a require coordinator to this function" without me
+    //has to be called from some internal function) which could only be that one which had been verified through the require. And since this is internal no1 more can call)
+    //so basically its a safe way to make sure this has to be called from the coordinator address by automatically "adding a require coordinator to this function" without we
     //having to type it, nice way.
 
-    //we're gonna pick a random winner using something calling the modulo function: (the same thing i've learned before of the remainder, the modulo operation yields the
+    //we're gonna pick a random winner using something calling the modulo function: (the same thing i've learned before using the remainder, the modulo operation yields the
     //remainder r after the division of the operand a by the operand n): 5 % 2 = 1 (1 is the remainder); 202 % 10 = 2 (and we always get a number in this case between
-    // 0 and 9 because if it was 10 it would be included, so its perfect for this case because 10 would be the length and 9 is then the max index)
+    // 0 and 9 because if it was 10 it would be included, so its perfect for this case because 10 would be the length and 9 is then the max index. Super nice)
     {
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable recentWinner = s_players[indexOfWinner];

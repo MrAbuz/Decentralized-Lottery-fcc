@@ -137,14 +137,13 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.send("evm_mine", [])
                   const tx = await raffle.performUpkeep([])
-                  assert(tx) //if tx doesnt work/performUpkeep() errors out, this will fail.
-                  //This looks like the oposite of expect to be reverted, but we expect it to work. Nice.
+                  assert(tx) //if tx doesnt work/performUpkeep() errors out, this will fail. Looks like the way to expect it to work, rather than to be reverted. Nice!
               })
 
               it("reverts when checkUpkeep is false", async function () {
                   //this is one of the examples that patrick didnt add this next two lines but I added them, bcuz by doing so Im being be super specific that upkeepNeeded
                   //is false, even tho its logical that it is, but im proving. I guess this is what he means its missing for the tests to be perfect.
-                  const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
+                  const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([]) //callstatic explained above, to get the return of the function without making a transaction, because its not view. We just want the return
                   assert.equal(upkeepNeeded, false)
                   expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded") //this error in my solidity returns some variables. We could be super
                   //specific and add the values of the variables that we expect it to revert with, using string interpolation. But we'll do it in a simple way like this.
@@ -156,7 +155,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await network.provider.send("evm_mine", [])
                   const txResponse = await raffle.performUpkeep([])
                   const txReceipt = await txResponse.wait(1)
-                  const raffleState = await raffle.getRaffleState
+                  const raffleState = await raffle.getRaffleState()
 
                   const requestId = txReceipt.events[1].args.requestId
                   //IMPORTANT: This is how you access the arguments of an event emited through a transaction
@@ -176,8 +175,43 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //At the same time we proved that we emited an event
                   //This is how we prove that a function was called? bcuz our function called a function of other contract and that function of other contract emited an event?
 
-                  assert(requestId.toNumber() > 0) //he said here or "toString or..." so maybe its the same? toNumber() or toString()?
-                  assert(raffleState == 1)
+                  assert(requestId.toNumber() > 0)
+                  assert(raffleState.toString() == "1") //don't yet know the difference between toNumber() or toString()
+              })
+          })
+
+          describe("fulfillRandomWords", function () {
+              //we're gonna run a beforeEach because we want that someone has entered the raffle before we run any tests here. makes a lot of sense. we'd have to repeat this
+              //code every time
+              beforeEach(async function () {
+                  await raffle.enterRaffle({ value: raffleEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
+                  await network.provider.send("evm_mine", [])
+              })
+              it("can only be called after performUpkeep", async function () {
+                  //here we're gonna revert on some requests that don't exist (requestId's that don't exist)
+                  //the fulfillRandomWords() from VRFCoordinatorv2 contract (if we go and have a look) has a require that verifies if the requestId exists, and reverts if it
+                  //doesnt. That fulfillRandomWords() (not the one on our contract that we're doing tests to), is the function called by the chainlink node, that will call
+                  //another contract that does the vrf. So we're testing if it reverts if it receives a request that doesn't exist.
+                  //The requestRandomWords() that we call in performUpkeep() retrieves a requestId and starts the chain of things, so we're basically testing if its possible
+                  //for someone to bypass it directly calling fulfillRandomWords() from the VRFCoordinatorv2 contract.
+                  await expect(
+                      vrfCoordinatorV2Mock.fulfillRandomWords(0, raffle.address) //we're trying this with a requestId = 0
+                  ).to.be.revertedWith("nonexistent request")
+                  await expect(
+                      vrfCoordinatorV2Mock.fulfillRandomWords(1, raffle.address) //we're trying this with a requestId = 1
+                  ).to.be.revertedWith("nonexistent request")
+
+                  //would be really hard for us to test every single possible requestId, we're gonna see a way in the future to actually test for a ton of this variables
+                  //with something called fuzz testing, but we get to that in the future
+              })
+              it("picks a winner, resets the lottery, and sends money", async function () {
+                  //this test is gonna be a really big test and we could split it up into different sections, but he figured this to be the best way to show this section.
+                  //this test will be almost the exact same as the staging test that we'll create after
+                  //this is the test that puts everything together
+                  //this is kind of a lot for a single it(), you'd probably wanna split those into their own pieces, but for this we're just gonna put them all into one.
+                  //we're gonna learn a couple of new tricks here
+                  //15:53:00
               })
           })
       })
