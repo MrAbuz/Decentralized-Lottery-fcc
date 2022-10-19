@@ -196,7 +196,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //The requestRandomWords() that we call in performUpkeep() retrieves a requestId and starts the chain of things, so we're basically testing if its possible
                   //for someone to bypass it directly calling fulfillRandomWords() from the VRFCoordinatorv2 contract.
                   await expect(
-                      vrfCoordinatorV2Mock.fulfillRandomWords(0, raffle.address) //we're trying this with a requestId = 0
+                      vrfCoordinatorV2Mock.fulfillRandomWords(0, raffle.address) //(requestId, address); we're trying this with a requestId = 0
                   ).to.be.revertedWith("nonexistent request")
                   await expect(
                       vrfCoordinatorV2Mock.fulfillRandomWords(1, raffle.address) //we're trying this with a requestId = 1
@@ -212,6 +212,40 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //this is kind of a lot for a single it(), you'd probably wanna split those into their own pieces, but for this we're just gonna put them all into one.
                   //we're gonna learn a couple of new tricks here
                   //15:53:00
+                  const additionalEntrants = 3
+                  const startingAccountIndex = 1 //since deployer = 0
+                  const accounts = await ethers.getSigners()
+                  for (
+                      let i = startingAccountIndex;
+                      i < startingAccountIndex + additionalEntrants;
+                      i++
+                  ) {
+                      const accountConnectedRaffle = raffle.connect(accounts[i])
+                      await accountConnectedRaffle.enterRaffle({ value: raffleEntranceFee })
+                  }
+                  const startingTimeStamp = await raffle.getLastTimeStamp()
+
+                  await new Promise(async (resolve, reject) => {
+                      //no html-fund-me-fcc também usei um listener dentro de uma promise, mas usei provider.once. "We're gonna settle that 'once' syntax"
+                      //I need to use a promise here because I can only verify those things after fulfillRandomWords()(that emits the event) was called by the chainlink vrf.
+                      raffle.once("WinnerPicked", () => {
+                          //WinnerPicked is the name of the event of fulfillRandomWords. "Listen for this WinnerPicked event, then do this function"
+                          try {
+                              //better to add a try catch because if something fails it causes a lot of headache, and like this if something we call fails it rejects.
+                          } catch (e) {
+                              reject()
+                          }
+                          resolve()
+                      })
+                      //we wanna set up our listener before calling performUpkeep() etc because we want that when we do fire the methods that will fire the event, our
+                      //listener is activated and waiting for it.
+                      //and we wanna call performUpkeep inside the promise because the promise has an await and anything after it would not be called until it resolves,
+                      //and we wanna call it inside the promise but outside of raffle.once because what is inside raffle.once is only called when the event is triggered,
+                      //and peformupKeep() needs to be called so that the event is triggered
+                      //we added a section in our hardhat.config.js with mocha: timeout 200000 that means anything that takes >200secs to execute will make the test fail
+                      const tx = await raffle.performUpkeep([])
+                      const txReceipt = await tx.wait(1)
+                  })
               })
           })
       })
