@@ -207,6 +207,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
               })
               it("picks a winner, resets the lottery, and sends money", async function () {
                   //this test is gonna be a really MASSIVE TEST and we could split it up into different sections, but he figured this to be the best way to show this section.
+                  //this is one of the most difficult sections of this course, this test alone
                   //this test will be almost the exact same as the staging test that we'll create after
                   //this is the test that puts everything together
                   //this is kind of a lot for a single it(), you'd probably wanna split those into their own pieces, but for this we're just gonna put them all into one.
@@ -230,24 +231,36 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //no html-fund-me-fcc também usei um listener dentro de uma promise, mas usei provider.once. "We're gonna settle that 'once' syntax"
                       //there's a good explanation for promise and .once in the end of this promise.
                       raffle.once("WinnerPicked", async () => {
-                          //WinnerPicked is the name of the event of fulfillRandomWords. "Listen for this WinnerPicked event, then do this function"
+                          //WinnerPicked is the name of the event of fulfillRandomWords(). "Listen for this WinnerPicked event, then do this function"
                           //only when this event is fired we want to assert things, because that means fulfillRandomWords was called. We need to wait for chainlink vrf to call it,
                           //because we'll only want to assert things here when fulfillRandomWords() was called, but we dont know when it is called, we need to listen for it.
                           console.log("Found the event!")
                           try {
                               const recentWinner = await raffle.getRecentWinner()
-                              console.log(recentWinner) //visual way to prove one of the getSigner accounts is the recent winner
-                              console.log(accounts[2].address)
-                              console.log(accounts[0].address)
-                              console.log(accounts[1].address)
-                              console.log(accounts[3].address)
+                              //                              console.log(recentWinner)        //we used this to find out that acc 1 is the winner, to continue the tests
+                              //                              console.log(accounts[2].address)
+                              //                              console.log(accounts[0].address)
+                              //                              console.log(accounts[1].address)
+                              //                              console.log(accounts[3].address)
                               const raffleState = await raffle.getRaffleState()
                               const endingTimeStamp = await raffle.getLatestTimeStamp()
                               const numPlayers = await raffle.getNumberOfPlayers()
+                              const winnerEndingBalance = await accounts[1].getBalance()
 
                               assert.equal(numPlayers.toString(), "0")
                               assert.equal(raffleState.toString(), "0")
                               assert(endingTimeStamp > startingTimeStamp)
+
+                              assert.equal(
+                                  winnerEndingBalance.toString(),
+                                  winnerStartingBalance.add(
+                                      raffleEntranceFee
+                                          .mul(additionalEntrants)
+                                          .add(raffleEntranceFee)
+                                          .toString()
+                                      //makes total sense, the ending balance of the winner is the starting balance + the money from the 3 entrants and his money back
+                                  )
+                              )
 
                               //better to add a try catch because if something fails it causes a lot of headache, and like this if something we call fails it rejects.
                           } catch (e) {
@@ -263,6 +276,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //we added a section in our hardhat.config.js with mocha: timeout 200000 that means anything that takes >200secs to execute will make the test fail
                       const tx = await raffle.performUpkeep([])
                       const txReceipt = await tx.wait(1)
+                      const winnerStartingBalance = await accounts[1].getBalance() //we know its acc 1 because of the console.log we did up there to visually see which address was the winner
                       await vrfCoordinatorV2Mock.fulfillRandomWords(
                           txReceipt.events[1].args.requestId,
                           raffle.address
@@ -270,7 +284,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //we're doing the job of chainlink vrf in this await right above because in hardhat chain/localhost there's no access to chainlink.
                       //this function that we call up here (fulfillRandomWords) from vrfCoordinator is a function normally called by the chainlink nodes where if the proper
                       //requestId is inserted (that we get when we call requestRandomWords in our performUpkeep()), it generates a random number and sends to our fullfillRandomWords.
-                      //Since there's no chainlink nodes in hardhat/localhost we're the ones calling and inserting the right requestId.
+                      //Since there's no chainlink nodes in hardhat/localhost we're the ones calling and inserting the right requestId here for this test.
                       //This is not very important, just some specifics around chainlink and testing on hardhat/localhost.
 
                       //After calling this fulfillRandomWords it will take a bit of time for our fulfillRandomWords to be called and filled with the randomwords, that's why we using
