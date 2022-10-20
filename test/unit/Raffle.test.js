@@ -206,7 +206,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //with something called fuzz testing, but we get to that in the future
               })
               it("picks a winner, resets the lottery, and sends money", async function () {
-                  //this test is gonna be a really big test and we could split it up into different sections, but he figured this to be the best way to show this section.
+                  //this test is gonna be a really MASSIVE TEST and we could split it up into different sections, but he figured this to be the best way to show this section.
                   //this test will be almost the exact same as the staging test that we'll create after
                   //this is the test that puts everything together
                   //this is kind of a lot for a single it(), you'd probably wanna split those into their own pieces, but for this we're just gonna put them all into one.
@@ -223,28 +223,70 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       const accountConnectedRaffle = raffle.connect(accounts[i])
                       await accountConnectedRaffle.enterRaffle({ value: raffleEntranceFee })
                   }
-                  const startingTimeStamp = await raffle.getLastTimeStamp()
+                  const startingTimeStamp = await raffle.getLatestTimeStamp()
 
                   await new Promise(async (resolve, reject) => {
-                      //no html-fund-me-fcc também usei um listener dentro de uma promise, mas usei provider.once. "We're gonna settle that 'once' syntax"
                       //I need to use a promise here because I can only verify those things after fulfillRandomWords()(that emits the event) was called by the chainlink vrf.
-                      raffle.once("WinnerPicked", () => {
+                      //no html-fund-me-fcc também usei um listener dentro de uma promise, mas usei provider.once. "We're gonna settle that 'once' syntax"
+                      //there's a good explanation for promise and .once in the end of this promise.
+                      raffle.once("WinnerPicked", async () => {
                           //WinnerPicked is the name of the event of fulfillRandomWords. "Listen for this WinnerPicked event, then do this function"
+                          //only when this event is fired we want to assert things, because that means fulfillRandomWords was called. We need to wait for chainlink vrf to call it,
+                          //because we'll only want to assert things here when fulfillRandomWords() was called, but we dont know when it is called, we need to listen for it.
+                          console.log("Found the event!")
                           try {
+                              const recentWinner = await raffle.getRecentWinner()
+                              console.log(recentWinner) //visual way to prove one of the getSigner accounts is the recent winner
+                              console.log(accounts[2].address)
+                              console.log(accounts[0].address)
+                              console.log(accounts[1].address)
+                              console.log(accounts[3].address)
+                              const raffleState = await raffle.getRaffleState()
+                              const endingTimeStamp = await raffle.getLatestTimeStamp()
+                              const numPlayers = await raffle.getNumberOfPlayers()
+
+                              assert.equal(numPlayers.toString(), "0")
+                              assert.equal(raffleState.toString(), "0")
+                              assert(endingTimeStamp > startingTimeStamp)
+
                               //better to add a try catch because if something fails it causes a lot of headache, and like this if something we call fails it rejects.
                           } catch (e) {
                               reject()
                           }
                           resolve()
                       })
-                      //we wanna set up our listener before calling performUpkeep() etc because we want that when we do fire the methods that will fire the event, our
-                      //listener is activated and waiting for it.
+                      //we wanna set up our listener (.once) before calling performUpkeep() etc because we want that when we do fire the methods that will fire the event, our
+                      //listener is already activated and waiting for it.
                       //and we wanna call performUpkeep inside the promise because the promise has an await and anything after it would not be called until it resolves,
                       //and we wanna call it inside the promise but outside of raffle.once because what is inside raffle.once is only called when the event is triggered,
                       //and peformupKeep() needs to be called so that the event is triggered
                       //we added a section in our hardhat.config.js with mocha: timeout 200000 that means anything that takes >200secs to execute will make the test fail
                       const tx = await raffle.performUpkeep([])
                       const txReceipt = await tx.wait(1)
+                      await vrfCoordinatorV2Mock.fulfillRandomWords(
+                          txReceipt.events[1].args.requestId,
+                          raffle.address
+                      )
+                      //we're doing the job of chainlink vrf in this await right above because in hardhat chain/localhost there's no access to chainlink.
+                      //this function that we call up here (fulfillRandomWords) from vrfCoordinator is a function normally called by the chainlink nodes where if the proper
+                      //requestId is inserted (that we get when we call requestRandomWords in our performUpkeep()), it generates a random number and sends to our fullfillRandomWords.
+                      //Since there's no chainlink nodes in hardhat/localhost we're the ones calling and inserting the right requestId.
+                      //This is not very important, just some specifics around chainlink and testing on hardhat/localhost.
+
+                      //After calling this fulfillRandomWords it will take a bit of time for our fulfillRandomWords to be called and filled with the randomwords, that's why we using
+                      //an event listener, so that it only asserts all those after it hears the event of fulfillRandoWords, which means its time to assert all those stuff that is
+                      //done in fulfillRandomWords.
+
+                      //Resume of this promise and .once thing:
+                      //I'm actually understanding this .once/promiss pretty well, because in the cases where we want to wait for something to be triggered in order to do any action,
+                      //as I understand so far we want to use .once with a promise because if it wasnt without a await promise the code wouldnt stand waiting for it to listen to
+                      //the .once, so the only way it stays is adding it inside an await that will wait for it to resolve.
+                      //We could probably do "await raffle.once()" but like this we wouldnt be able to add the calls we do after like performUpkeep() and then wait for it to listen,
+                      //only way is like this to include everything in a big await, that has a promise because without a promise it wouldnt end even when .once is triggered, so
+                      //with a promise is perfect bcuz it makes it able to wait for the .once, add things after the .once that are the calls that .once will listen, and then let
+                      //us tell when we decide that the await is over.
+
+                      //16:03:40
                   })
               })
           })
