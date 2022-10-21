@@ -274,6 +274,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //and we wanna call it inside the promise but outside of raffle.once because what is inside raffle.once is only called when the event is triggered,
                       //and peformupKeep() needs to be called so that the event is triggered
                       //we added a section in our hardhat.config.js with mocha: timeout 200000 that means anything that takes >200secs to execute will make the test fail
+                      //this block of code below is just us mocking the chainlink keepers and chainlink vrf. in the staging tests this will be the only part we wont have
                       const tx = await raffle.performUpkeep([])
                       const txReceipt = await tx.wait(1)
                       const winnerStartingBalance = await accounts[1].getBalance() //we know its acc 1 because of the console.log we did up there to visually see which address was the winner
@@ -299,8 +300,6 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //only way is like this to include everything in a big await, that has a promise because without a promise it wouldnt end even when .once is triggered, so
                       //with a promise is perfect bcuz it makes it able to wait for the .once, add things after the .once that are the calls that .once will listen, and then let
                       //us tell when we decide that the await is over.
-
-                      //16:03:40
                   })
               })
           })
