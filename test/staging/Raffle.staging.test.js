@@ -4,12 +4,12 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
 
 developmentChains.includes(network.name)
     ? describe.skip
-    : describe("Raffle Unit Tests", function () {
+    : describe("Raffle Staging Tests", function () {
           let raffle, raffleEntranceFee, deployer
 
           beforeEach(async function () {
               deployer = (await getNamedAccounts()).deployer
-              //we dont need to deploy any fixture in staging tests because we're gonna run our deploy script and our contract should already be deployed to get with next line
+              //we dont need to deploy any fixture in staging tests because we're gonna run our deploy script and our contract should already be deployed to get with the next line (ethers.getContract())
               raffle = await ethers.getContract("Raffle", deployer)
               raffleEntranceFee = await raffle.getEntranceFee()
           })
@@ -19,7 +19,7 @@ developmentChains.includes(network.name)
                   //we shouldn't need to do anything besides enter the raffle, because the chainlink keepers and chainlink vrf are gonna be the ones to actually kick this off
 
                   //we want to setup the listener before we enter the raffle just in case the blockchain moves really fast, because now the keepers and vrf will work by themselves
-                  //we could've done the same in unit tests but we were manually calling the functions and the vrf so we knew that adding the listener there was 100%
+                  //we could've done the same in unit tests but we were manually calling the functions replacing keepers/vrf so we knew that adding the listener there was 100%
                   //before fulfillrandomwords(), which is what we need (to only assert things after fulfillrandomwords/its event is fired)
                   const startingTimeStamp = await raffle.getLatestTimeStamp()
                   const accounts = await ethers.getSigners()
@@ -32,11 +32,11 @@ developmentChains.includes(network.name)
                               const recentWinner = await raffle.getRecentWinner()
                               const raffleState = await raffle.getRaffleState()
                               const winnerEndingBalance = await accounts[0].getBalance() //we're only entering with our deployer, so its the winner for sure.
-                              //"We cant use the deployer object to check the balance", so we use the accounts[0] from ethers.getSigners() which is our deployer too
-                              //Weird. Remember this
+                              //"We cant use the deployer object to check the balance", so we use the accounts[0] and initiated ethers.getSigners() which is our deployer too
+                              //Weird. This is tricky. Need to remember this
                               const endingTimeStamp = await raffle.getLatestTimeStamp()
 
-                              await expect(raffle.getPlayer(0)).to.be.reverted //same as we did in unit, another way: assert.equal(numPlayers.toString(), "0")
+                              await expect(raffle.getPlayer(0)).to.be.reverted //in unit tests we did the same but in another way: assert.equal(numPlayers.toString(), "0")
                               assert.equal(recentWinner.toString(), accounts[0].address)
                               assert.equal(raffleState, 0) //in the unit test we did (raffleState.toString, "0")
                               assert.equal(
@@ -47,7 +47,7 @@ developmentChains.includes(network.name)
                               resolve()
                           } catch (error) {
                               console.log(error)
-                              reject(e) //bug?
+                              reject(error) //is it really with (e)? in unit test we did reject()
                           }
                       })
                       //Then entering the raffle
@@ -60,14 +60,16 @@ developmentChains.includes(network.name)
                       //takes for chainlink nodes to call it, so we set up a listener and once the event of fulfillRandomWords is triggered, then we do the asserts and
                       //end with the resolve().
 
-                      // In order for us to test our staging test, we first gonna need to do this things:
+                      // In order for us to test our staging test, we first gonna need to do this things (16:18:30):
                       // 1. Get our SubId for Chainlink VRF
+                      //            https://vrf.chain.link/
+                      // 1.1 Fund it with Link
                       // 2. Deploy our contract using the SubId
                       // 3. Register the contract with Chainlink VRF @ it's subId
-                      // 4. Register the contract wiht Chainlink Keepers
+                      // 4. Register the contract with Chainlink Keepers
                       // 5. Run staging tests
 
-                      //16:18:31
+                      //16:32:36
                   })
               })
           })
