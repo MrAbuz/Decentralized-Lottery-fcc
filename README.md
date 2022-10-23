@@ -1,4 +1,6 @@
-# Decentralized Lottery using Chainlink VRF and Chainlink Keepers
+# Decentralized Lottery
+
+# using Chainlink VRF and Chainlink Keepers
 
 This repo provides the code for a Decentralized Lottery that is autonomous and verifiably random, created by Patrick Collins.
 
@@ -34,7 +36,7 @@ yarn hardhat test
 
 # -Setup the Chainlink VRF and Chainlink Keepers (before deploying, interacting with the contract or running the Staging tests) in 4 steps:
 
-(16:18:30) in the video
+16:18:30
 
 ```
 1. Get our SubId for Chainlink VRF
