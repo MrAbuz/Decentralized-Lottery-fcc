@@ -1,9 +1,10 @@
 # Decentralized Lottery using Chainlink VRF and Chainlink Keepers
 
 This repo provides the code for a Decentralized Lottery that is autonomous and verifiably random, created by Patrick Collins.
+
 The next repo i'll add in this github will be the code for a front-end that connects to this lottery.
 
--Quickstart
+# -Quickstart
 
 ```
 git clone https://github.com/MrAbuz/hardhat-smartcontract-lottery-fcc
@@ -11,13 +12,13 @@ cd hardhat-smartcontract-lottery-fcc
 yarn
 ```
 
--Install dependencies
+# -Install dependencies
 
 ```
 yarn add --dev @nomiclabs/hardhat-ethers@npm:hardhat-deploy-ethers ethers @nomiclabs/hardhat-etherscan @nomiclabs/hardhat-waffle chai ethereum-waffle hardhat hardhat-contract-sizer hardhat-deploy hardhat-gas-reporter prettier prettier-plugin-solidity solhint solidity-coverage dotenv
 ```
 
--Add a .env file (adding an goerli rpc url, a private key and an etherscan api key to the following variables):
+# -Add a .env file (adding an goerli rpc url, a private key and an etherscan api key to the following variables):
 
 ```
 GOERLI_RPC_URL=
@@ -25,13 +26,14 @@ PRIVATE_KEY=
 ETHERSCAN_API_KEY=
 ```
 
--Run Unit tests
+# -Run the Unit tests
 
 ```
 yarn hardhat test
 ```
 
--Setup the Chainlink VRF and Chainlink Keepers (before deploying, interacting with the contract or running the Staging tests) in 4 steps:
+# -Setup the Chainlink VRF and Chainlink Keepers (before deploying, interacting with the contract or running the Staging tests) in 4 steps:
+
 (16:18:30) in the video
 
 ```
@@ -62,16 +64,16 @@ yarn hardhat test
 
 ```
 
--By now you've already deployed the contract on Goerli, but if not:
+# -By now you've already deployed the contract on Goerli, but if not:
 
 ```
 yarn hardhat deploy --network goerli
 ```
 
--Run the Staging test
+# -Run the Staging test
 
 ```
 yarn hardhat test --network goerli
 ```
 
-Have fun! :D
+# Have fun! :D
