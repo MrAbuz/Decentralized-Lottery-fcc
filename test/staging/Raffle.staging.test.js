@@ -51,7 +51,8 @@ developmentChains.includes(network.name)
                           }
                       })
                       //Then entering the raffle
-                      await raffle.enterRaffle({ value: raffleEntranceFee })
+                      const tx = await raffle.enterRaffle({ value: raffleEntranceFee })
+                      await tx.wait(1) //had to add this because I was getting an error on the test where accounts[0] balance was updating before enterRaffle(). dont understand 100% why
                       const winnerStartingBalance = await accounts[0].getBalance() //super smart, right after enterRaffle so the fees dont mess with the calculations
 
                       //and this code WONT complete until our listener has finished listening!(because the resolve() is inside .once, and .once just triggers when it
