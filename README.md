@@ -1,6 +1,4 @@
-# Decentralized Lottery
-
-# using Chainlink VRF and Chainlink Keepers
+# Decentralized Lottery (using Chainlink VRF and Chainlink Keepers)
 
 This repo provides the code for a Decentralized Lottery that is autonomous and verifiably random, created by Patrick Collins.
 
