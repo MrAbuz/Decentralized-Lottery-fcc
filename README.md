@@ -26,7 +26,7 @@ PRIVATE_KEY=
 ETHERSCAN_API_KEY=
 ```
 
-# -Run the Unit tests
+# -Run Unit tests
 
 ```
 yarn hardhat test
@@ -70,10 +70,10 @@ yarn hardhat test
 yarn hardhat deploy --network goerli
 ```
 
-# -Run the Staging test
+# -Run Staging test
 
 ```
 yarn hardhat test --network goerli
 ```
 
-# Have fun! :D
+# Have fun! :)

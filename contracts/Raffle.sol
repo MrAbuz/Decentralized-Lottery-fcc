@@ -288,5 +288,3 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 // and often times when he's writing smart contracts he's often flipping between the deploy scripts, the contracts and the tests to make sure everything is doing exactly
 // what he wants them to do. For the purpose of this course, and to make it easier for us to follow, we're gonna keep writing our smart contract almost until its complete,
 // and then move to the deploy scripts and the tests. But in the future when we're making them its good to deploy and test as we're writing the contracts.
-
-//14:50:37
