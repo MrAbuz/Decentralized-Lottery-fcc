@@ -42,7 +42,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator; //always immutable when we're only setting this one time and never change
     bytes32 private immutable i_gasLane;
     uint64 private immutable i_subscriptionId; //uint64 is enough, doesnt actually need to be a uint256
-    uint16 private constant REQUEST_CONFIRMATIONS = 3;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3; //constant variables are stored in the bytecode, it isn't reading from storage
     uint32 private immutable i_callbackGasLimit;
     uint32 private constant NUM_WORDS = 1;
 
@@ -220,6 +220,12 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
         emit WinnerPicked(recentWinner);
     }
+
+    //Added this receive() and fallback() functions here because of that bug we get while deploying on hardhat node that there isn't a fallback function.
+    //Don't know whats the place for the receive and fallback functions according to best practises, prob delete them later
+    receive() external payable {}
+
+    fallback() external payable {}
 
     /* View / Pure Functions */
     // this gets were also good to make tests

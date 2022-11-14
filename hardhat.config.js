@@ -27,6 +27,9 @@ module.exports = {
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [], //from patrick
             saveDeployments: true, //from patrick, dunno what's this for aswell
         },
+        localhost: {
+            chainId: 31337,
+        },
     },
     etherscan: {
         //got this from patrick

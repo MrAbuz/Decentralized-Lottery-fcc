@@ -5,7 +5,7 @@ const networkConfig = {
     5: {
         name: "goerli",
         vrfCoordinatorV2: "0x2ca8e0c643bde4c2e08ab1fa0da3401adad7734d", // *
-        entranceFee: ethers.utils.parseEther("0.01"),
+        entranceFee: ethers.utils.parseEther("0.1"),
         //we want to make the entrance fee different depending on the chain we're on; if we're on a more expensive chain we wanna make this higher than others
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15",
         subscriptionId: "5122", //we got this from https://vrf.chain.link/goerli/5122
@@ -16,7 +16,7 @@ const networkConfig = {
     },
     31337: {
         name: "hardhat",
-        entranceFee: ethers.utils.parseEther("0.01"),
+        entranceFee: ethers.utils.parseEther("0.1"),
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15", //we're using the same one even tho its irrelevant, just to fill, it doesnt matter
         //which gas lane we input since here it'll be on hardhat/localhost
         callbackGasLimit: "500000",
