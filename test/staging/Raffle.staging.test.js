@@ -69,8 +69,6 @@ developmentChains.includes(network.name)
                       // 3. Register the contract with Chainlink VRF @ it's subId
                       // 4. Register the contract with Chainlink Keepers
                       // 5. Run staging tests
-
-                      //16:32:36
                   })
               })
           })
