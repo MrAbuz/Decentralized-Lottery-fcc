@@ -55,7 +55,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await expect(raffle.enterRaffle({ value: raffleEntranceFee })).to.emit(
                       raffle,
                       "RaffleEnter"
-                  ) //this works like to.emit("contract name", "event name")
+                  ) //this works like to.emit("name of variable that we're pointing to the contract", "event name")                                                *************
               })
 
               it("doesnt allow entrance when raffle is calculating", async function () {
@@ -106,8 +106,8 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await raffle.enterRaffle({ value: raffleEntranceFee })
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.send("evm_mine", [])
-                  await raffle.performUpkeep([])
-                  const raffleState = await raffle.getRaffleState() //this makes the enum state turn into CALCULATING
+                  await raffle.performUpkeep([]) //this makes the enum state turn into CALCULATING
+                  const raffleState = await raffle.getRaffleState()
                   const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
                   assert.equal(raffleState.toString(), "1") //because the options on the enums are in reality 0,1,2..first chosen is 0, then 1, then 2. OPEN=0; CALCULATING=1.
                   assert.equal(upkeepNeeded, false) //same as assert (!upkeepNeeded) as we did above
@@ -127,7 +127,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.send("evm_mine", [])
                   const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([])
-                  assert.equal(upkeepNeeded, true)
+                  assert.equal(upkeepNeeded, true) //                                                                                                                ***********
               })
           })
           describe("performUpkeep", function () {
@@ -137,7 +137,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   await network.provider.send("evm_increaseTime", [interval.toNumber() + 1])
                   await network.provider.send("evm_mine", [])
                   const tx = await raffle.performUpkeep([])
-                  assert(tx) //if tx doesnt work/performUpkeep() errors out, this will fail. Looks like the way to expect it to work, rather than to be reverted. Nice!
+                  assert(tx) //if tx doesnt work/performUpkeep() errors out, this will fail. Looks like the way to expect it to work, rather than to be reverted. Nice! **********
               })
 
               it("reverts when checkUpkeep is false", async function () {
@@ -145,7 +145,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //is false, even tho its logical that it is, but im proving. I guess this is what he means its missing for the tests to be perfect.
                   const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([]) //callstatic explained above, to get the return of the function without making a transaction, because its not view. We just want the return
                   assert.equal(upkeepNeeded, false)
-                  expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded") //this error in my solidity returns some variables. We could be super
+                  expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded") //this error in my solidity returns some variables. We could be super ************
                   //specific and add the values of the variables that we expect it to revert with, using string interpolation. But we'll do it in a simple way like this.
               })
 
@@ -175,7 +175,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //At the same time we proved that we emited an event
                   //This is how we prove that a function was called? bcuz our function called a function of other contract and that function of other contract emited an event?
 
-                  assert(requestId.toNumber() > 0)
+                  assert(requestId.toNumber() > 0) //                                                                                                               *************
                   assert(raffleState.toString() == "1") //don't yet know the difference between toNumber() or toString()
               })
           })
@@ -227,11 +227,13 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   const startingTimeStamp = await raffle.getLatestTimeStamp()
 
                   await new Promise(async (resolve, reject) => {
-                      //I need to use a promise here because I can only verify those things after fulfillRandomWords()(that emits the event) was called by the chainlink vrf.
+                      //I need to use a promise here because I can only verify those things after fulfillRandomWords()(that emits the event) was called by the chainlink vrf. **************
                       //no html-fund-me-fcc também usei um listener dentro de uma promise, mas usei provider.once. "We're gonna settle that 'once' syntax"
                       //there's a good explanation for promise and .once in the end of this promise.
                       raffle.once("WinnerPicked", async () => {
                           //WinnerPicked is the name of the event of fulfillRandomWords(). "Listen for this WinnerPicked event, then do this function"
+                          //We add this listener first, then we add the functions that will trigger the listener to listen. Since this is all inside an await with promise, it will await for the
+                          //listener to listen, because the await only ends when it finds the promise/rejection that is inside the listener.
                           //only when this event is fired we want to assert things, because that means fulfillRandomWords was called. We need to wait for chainlink vrf to call it,
                           //because we'll only want to assert things here when fulfillRandomWords() was called, but we dont know when it is called, we need to listen for it.
                           console.log("Found the event!")
@@ -249,7 +251,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
 
                               assert.equal(numPlayers.toString(), "0")
                               assert.equal(raffleState.toString(), "0")
-                              assert(endingTimeStamp > startingTimeStamp)
+                              assert(endingTimeStamp > startingTimeStamp) //                                                                                 ***************
 
                               assert.equal(
                                   winnerEndingBalance.toString(),
@@ -272,7 +274,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //listener is already activated and waiting for it.
                       //and we wanna call performUpkeep inside the promise because the promise has an await and anything after it would not be called until it resolves,
                       //and we wanna call it inside the promise but outside of raffle.once because what is inside raffle.once is only called when the event is triggered,
-                      //and peformupKeep() needs to be called so that the event is triggered
+                      //and performUpKeep() needs to be called so that the event is triggered
                       //we added a section in our hardhat.config.js with mocha: timeout 200000 that means anything that takes >200secs to execute will make the test fail
                       //this block of code below is just us mocking the chainlink keepers and chainlink vrf. in the staging tests this will be the only part we wont have
                       const tx = await raffle.performUpkeep([])
@@ -293,14 +295,54 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                       //done in fulfillRandomWords.
 
                       //Resume of this promise and .once thing:
-                      //I'm actually understanding this .once/promiss pretty well, because in the cases where we want to wait for something to be triggered in order to do any action,
-                      //as I understand so far we want to use .once with a promise because if it wasnt without a await promise the code wouldnt stand waiting for it to listen to
+                      //I'm actually understanding this .once/promise pretty well, because in the cases where we want to wait for something to be triggered in order to do any action,
+                      //as I understand so far we want to use .once with a promise because if it was without an await promise the code wouldnt stand waiting for it to listen to
                       //the .once, so the only way it stays is adding it inside an await that will wait for it to resolve.
                       //We could probably do "await raffle.once()" but like this we wouldnt be able to add the calls we do after like performUpkeep() and then wait for it to listen,
-                      //only way is like this to include everything in a big await, that has a promise because without a promise it wouldnt end even when .once is triggered, so
-                      //with a promise is perfect bcuz it makes it able to wait for the .once, add things after the .once that are the calls that .once will listen, and then let
+                      //only way is like this to include everything in a big await, that has a promise because without a promise it would "skip" the .once because it has no await and
+                      //execute the awaits after and when those awaits were done it would end probably before the listener getting executed. So with an await promise we tell that it
+                      //has either to await for that code but also that it should only end once it resolves/rejects, and not when it executes the last line of code.
+                      //With a promise is perfect bcuz it makes it able to wait for the .once, add things after the .once that are the calls that .once will listen, and then let
                       //us tell when we decide that the await is over.
                   })
               })
           })
       })
+
+// Different asserts/expects I used in tests so far:
+
+// 1) Assert that the transaction works
+// const tx = await raffle.performUpkeep([])
+// assert(tx)
+//
+
+// 2) Expect that the transaction doesnt work
+// expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded")
+//
+
+// 3) Expect that the transaction emits an event
+// await expect(raffle.enterRaffle({ value: raffleEntranceFee })).to.emit(
+//    raffle,
+//    "RaffleEnter"
+// ) How it works: This works like to.emit("pointer contract variable", "event name")
+//
+
+// 4)
+// assert.equal(upkeepNeeded, true) //
+//
+
+// 5)
+// assert(requestId.toNumber() > 0) //
+//
+
+// 6)
+// assert(raffleState.toString() == "1")
+//
+
+// 7)
+// assert(endingTimeStamp > startingTimeStamp)
+//
+
+// 8)
+// assert(tokenURIzero.includes("ipfs://"))
+//
