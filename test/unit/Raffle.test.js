@@ -5,6 +5,9 @@
 //be easy. I can also be wrong, but i'm pretty sure. A lot of times we're assuming x to be true cuz its logic it should be true, but we could be asserting it to be true
 //so that every conditional is explicitely true in the test. One example. As I do more and more I bet i'll understand really well how to do this tests perfectly.
 
+//Patrick: Ideally, only 1 assert per "it" block
+//                  and we check everything
+
 const { assert, expect } = require("chai")
 const { getNamedAccounts, deployments, ethers, network } = require("hardhat")
 const { developmentChains, networkConfig } = require("../../helper-hardhat-config") //if we're inside two folders this is how we do it, interesting
@@ -145,7 +148,9 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
                   //is false, even tho its logical that it is, but im proving. I guess this is what he means its missing for the tests to be perfect.
                   const { upkeepNeeded } = await raffle.callStatic.checkUpkeep([]) //callstatic explained above, to get the return of the function without making a transaction, because its not view. We just want the return
                   assert.equal(upkeepNeeded, false)
-                  expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded") //this error in my solidity returns some variables. We could be super ************
+                  await expect(raffle.performUpkeep([])).to.be.revertedWith(
+                      "Raffle__UpkeepNotNeeded"
+                  ) //this error in my solidity returns some variables. We could be super ************
                   //specific and add the values of the variables that we expect it to revert with, using string interpolation. But we'll do it in a simple way like this.
               })
 
@@ -310,15 +315,16 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
       })
 
 // Different asserts/expects I used in tests so far:
+// (Expect with "await" always so far)
 
 // 1) Assert that the transaction works
 // const tx = await raffle.performUpkeep([])
 // assert(tx)
-//
+// (performUpkeep didnt return anything)
 
 // 2) Expect that the transaction doesnt work
-// expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded")
-//
+// await expect(raffle.performUpkeep([])).to.be.revertedWith("Raffle__UpkeepNotNeeded")
+// we can be explicit with the variables it is reverted in the error. And doenst need the with probably
 
 // 3) Expect that the transaction emits an event
 // await expect(raffle.enterRaffle({ value: raffleEntranceFee })).to.emit(
@@ -328,19 +334,19 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
 //
 
 // 4)
+// assert(!upkeepNeeded)
+// upkeepNeeded is a bool returned
+
+// 5)
 // assert.equal(upkeepNeeded, true) //
 //
 
-// 5)
+// 6)
 // assert(requestId.toNumber() > 0) //
 //
 
-// 6)
-// assert(raffleState.toString() == "1")
-//
-
 // 7)
-// assert(endingTimeStamp > startingTimeStamp)
+// assert(raffleState.toString() == "1")
 //
 
 // 8)
