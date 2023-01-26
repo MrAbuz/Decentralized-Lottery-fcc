@@ -6,7 +6,8 @@
 //so that every conditional is explicitely true in the test. One example. As I do more and more I bet i'll understand really well how to do this tests perfectly.
 
 //Patrick: Ideally, only 1 assert per "it" block
-//                  and we check everything
+//                  check everything
+//                  check the test coverage in the end to make sure its 100%
 
 const { assert, expect } = require("chai")
 const { getNamedAccounts, deployments, ethers, network } = require("hardhat")
