@@ -332,6 +332,7 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
 //    raffle,
 //    "RaffleEnter"
 // ) How it works: This works like to.emit("pointer contract variable", "event name")
+//                 Doesnt seem to need the pointer after all, patrick not using it now
 //
 
 // 4)
@@ -353,3 +354,31 @@ const { developmentChains, networkConfig } = require("../../helper-hardhat-confi
 // 8)
 // assert(tokenURIzero.includes("ipfs://"))
 //
+
+// 9)
+// const error = `AlreadyListed("${basicNft.address}", ${TOKEN_ID})`
+// await expect(
+// nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+// ).to.be.revertedWith(error)
+
+//--------------------------------------------
+// 1) structs
+// assert.equal(listing.price.toString(), PRICE.toString())
+
+// 2) if we want to send value and the functions has arguments
+// await nftMarketplacePlayer.buyItem(basicNft.address, TOKEN_ID, {value: PRICE})
+
+// 3) balance of deployer
+// await deployer.getBalance()
+
+// 4) add / multiply etc
+// const gasCost = gasUsed.mul(effectiveGasPrice)
+// balanceBefore.add(proceeds).toString()
+
+// 5) add gas cost for the balance math to be right
+// const transactionReceipt = await txResponse.wait(1)
+// const { gasUsed, effectiveGasPrice } = transactionReceipt
+// const gasCost = gasUsed.mul(effectiveGasPrice)
+
+// 5) address zero
+// ethers.constants.AddressZero
