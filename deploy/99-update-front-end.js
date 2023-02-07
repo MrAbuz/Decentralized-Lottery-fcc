@@ -1,6 +1,13 @@
 const { ethers, network } = require("hardhat")
 const fs = require("fs")
 
+// I think this script didnt work properly when I tried to use it for goerli, need to check again.
+// If its not, should try comparing it to the same one i'm doing in the nft marketplace in 1:01:42:39 (so far didnt do it in my nft marketplace but
+// i'll probably do it in the the graph part cuz im just watching this one) but can see from patrick's github nft marketplce (99-update..) and that part of the video.
+// Probably even this lottery file in patricks git hub is fixed.
+// Probably its the mistake he was doing and explaining exactly here in 1:01:42:39 of not creating the array, need to check when im fixing this.
+// But this is really easy to do
+
 //patrick uses this script to make his life easier, an update frontend deploy script
 //it makes it so that if we want to make some change in our backend code, that change is instantly reflected on the frontend
 //so, after that contract (that was changed) gets deployed, we run a script that creates the constants folder for us on the frontend file
